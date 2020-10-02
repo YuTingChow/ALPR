@@ -1,0 +1,23 @@
+
+# Train command: python train.py --data LPletters.yaml
+# Default dataset location is next to /yolov5:
+#   /parent_folder
+#     /LPdataset
+#     /yolov5
+
+
+# download command/URL (optional)
+
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: ../LPdataset/images/train/  #  images
+val: ../LPdataset/images/val/  #  images
+
+#train: ../LPletters/images/train/  #  images
+#val: ../LPletters/images/val/  #  images
+# number of classes
+nc: 1
+
+# class names
+names: ['char']
+#names: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
