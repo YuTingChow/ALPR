@@ -11,6 +11,15 @@ data/preprocessed
 data/processed
 data/raw
 
+# Output
+output/
+
+# Results
+Results/
+
+# tests
+tests/images
+
 # Runs
 src/runs
 # Distribution / packaging

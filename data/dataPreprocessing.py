@@ -1,6 +1,6 @@
 import cv2
 import os
-os.environ['DISPLAY'] = ':1'
+
 inputFolder = "/home/bill/alpr-insight/licensePlate/images/train/"
 outputFolder = "/home/bill/alpr-insight/licensePlate/labels/train/"
 for filename in os.listdir(inputFolder):
