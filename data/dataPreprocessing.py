@@ -2,8 +2,7 @@ import argparse
 import cv2
 import os
 
-def dataPreprocessing():
-    os.environ['DISPLAY'] = ':1'
+def ConvertLabel2TrainingFormat():
     inputFolder = opt.source
     outputFolder = opt.output
     for filename in os.listdir(inputFolder):
@@ -36,5 +35,5 @@ if __name__ == "__main__":
     parser.add_argument('--output', type=str, default='/preprocessed', help='output folder')  # output folder
     opt = parser.parse_args()
 
-    dataPreprocessing()
+    ConvertLabel2TrainingFormat()
     
