@@ -4,20 +4,21 @@ import platform
 import shutil
 import time
 from pathlib import Path
-
+import numpy as np
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
 
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages
+from utils.datasets import LoadStreams, LoadImages, letterbox
 from utils.general import (
-    check_img_size, non_max_suppression, apply_classifier, scale_coords,
+    check_img_size, non_max_suppression, apply_classifier, scale_coords, 
     xyxy2xywh, plot_one_box, strip_optimizer, set_logging)
 from utils.torch_utils import select_device, load_classifier, time_synchronized
-
-
+import easyocr
+reader = easyocr.Reader(['en']) # need to run only once to load model into memory
+easyocr_whitelist = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
 def detect(save_img=False):
     out, source, weights, view_img, save_txt, imgsz = \
         opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
@@ -56,6 +57,7 @@ def detect(save_img=False):
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
+    # colors = [[0,255,0] for _ in range(len(names))]
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
 
     # Run inference
@@ -75,19 +77,48 @@ def detect(save_img=False):
 
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
-        t2 = time_synchronized()
+        
 
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
+        im0a = [im0s.copy()] if isinstance(im0s, np.ndarray) else im0s.copy()
+        textss = []
+        for i, d in enumerate(pred):  # per image
+            texts = []
+            
+            if d is not None and len(d):
+                d = d.clone()
 
+                # Rescale boxes from img_size to im0 size
+                scale_coords(img.shape[2:], d[:, :4], im0a[i].shape)
+                for j, a in enumerate(d):  # per item
+                    cutout = im0a[i][int(a[1]):int(a[3]), int(a[0]):int(a[2])].copy()
+                    cutout = letterbox(cutout, new_shape=160, color = (0,0,0))[0]
+                    cutout = cv2.resize(cutout,(160, 80), interpolation=cv2.INTER_CUBIC)
+                    # cv2.imwrite('test%i-%i.jpg' % (j,i), cutout)
+                    text = reader.readtext(cutout, allowlist=easyocr_whitelist, detail=0, min_size=130, batch_size=8)
+                    if(len(text)>0):
+                        l=0
+                        bestText = ''
+                        while len(bestText)>8 or len(bestText) < 1:
+                            bestText = text[l]
+                            l+=1
+                            if l>=len(text):
+                                break
+                        print(j,' ',bestText)
+                        texts.append(bestText)
+                    else:
+                        texts.append('')
+                textss.append(texts)
+        # print(textss, len(textss))
+        t2 = time_synchronized()
         # Process detections
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
                 p, s, im0 = path[i], '%g: ' % i, im0s[i].copy()
             else:
                 p, s, im0 = path, '', im0s
-
             save_path = str(Path(out) / Path(p).name)
             txt_path = str(Path(out) / Path(p).stem) + ('_%g' % dataset.frame if dataset.mode == 'video' else '')
             s += '%gx%g ' % img.shape[2:]  # print string
@@ -102,15 +133,24 @@ def detect(save_img=False):
                     s += '%g %ss, ' % (n, names[int(c)])  # add to string
 
                 # Write results
+                counter=-1
                 for *xyxy, conf, cls in reversed(det):
+                    # if(len(xyxy)<1):
+                    #     break
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * 5 + '\n') % (cls, *xywh))  # label format
+                            f.write(path.split(sep='/')[-1]+'\t'+textss[i][counter]+'\n')
+                            # f.write(('%g ' * 5 + '\n') % (cls, *xywh))  # label format
 
                     if save_img or view_img:  # Add bbox to image
-                        label = '%s %.2f' % (names[int(cls)], conf)
+                        # print(len(textss), i, counter)
+                        if(len(textss) > 0):
+                            label = '%s %.2f' % (textss[i][counter], conf)
+                        else:
+                            label = '%.2f' % (conf)
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
+                    counter-=1
 
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
