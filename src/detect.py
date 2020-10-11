@@ -17,9 +17,9 @@ from utils.general import (
     xyxy2xywh, plot_one_box, strip_optimizer, set_logging)
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 import easyocr
-reader = easyocr.Reader(['en']) # need to run only once to load model into memory
-easyocr_whitelist = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
+
 def detect(save_img=False):
+    
     out, source, weights, view_img, save_txt, imgsz = \
         opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.startswith(('rtsp://', 'rtmp://', 'http://')) or source.endswith('.txt')
@@ -37,7 +37,9 @@ def detect(save_img=False):
     imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
     if half:
         model.half()  # to FP16
-
+    #Setup EasyOCR 
+    reader = easyocr.Reader(['en']) # need to run only once to load model into memory
+    easyocr_whitelist = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
     # Second-stage classifier
     classify = False
     if classify:
@@ -97,6 +99,7 @@ def detect(save_img=False):
                     cutout = letterbox(cutout, new_shape=160, color = (0,0,0))[0]
                     cutout = cv2.resize(cutout,(160, 80), interpolation=cv2.INTER_CUBIC)
                     # cv2.imwrite('test%i-%i.jpg' % (j,i), cutout)
+                    # Read out license plate character
                     text = reader.readtext(cutout, allowlist=easyocr_whitelist, detail=0, min_size=130, batch_size=8)
                     if(len(text)>0):
                         l=0
