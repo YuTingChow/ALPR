@@ -17,9 +17,9 @@ from utils.general import (
     xyxy2xywh, plot_one_box, strip_optimizer, set_logging)
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 import easyocr
-reader = easyocr.Reader(['en']) # need to run only once to load model into memory
-easyocr_whitelist = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
+
 def detect(save_img=False):
+    
     out, source, weights, view_img, save_txt, imgsz = \
         opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.startswith(('rtsp://', 'rtmp://', 'http://')) or source.endswith('.txt')
@@ -37,7 +37,9 @@ def detect(save_img=False):
     imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
     if half:
         model.half()  # to FP16
-
+    #Setup EasyOCR 
+    reader = easyocr.Reader(['en']) # need to run only once to load model into memory
+    easyocr_whitelist = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ'
     # Second-stage classifier
     classify = False
     if classify:
@@ -97,6 +99,7 @@ def detect(save_img=False):
                     cutout = letterbox(cutout, new_shape=160, color = (0,0,0))[0]
                     cutout = cv2.resize(cutout,(160, 80), interpolation=cv2.INTER_CUBIC)
                     # cv2.imwrite('test%i-%i.jpg' % (j,i), cutout)
+                    # Read out license plate character
                     text = reader.readtext(cutout, allowlist=easyocr_whitelist, detail=0, min_size=130, batch_size=8)
                     if(len(text)>0):
                         l=0
@@ -141,7 +144,6 @@ def detect(save_img=False):
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(path.split(sep='/')[-1]+'\t'+textss[i][counter]+'\n')
-                            # f.write(('%g ' * 5 + '\n') % (cls, *xywh))  # label format
 
                     if save_img or view_img:  # Add bbox to image
                         # print(len(textss), i, counter)
@@ -188,11 +190,11 @@ def detect(save_img=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
+    parser.add_argument('--source', type=str, default='tests/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.4, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
