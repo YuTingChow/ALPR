@@ -15,12 +15,17 @@ The YOLOv5 framework is adopted from https://github.com/ultralytics/yolov5 and t
 
 For EasyOCR https://github.com/JaidedAI/EasyOCR, default settings and weights are used.
 
-# Requirements
+# Environment Setup
 Python 3.8 or later with all [requirements.txt](requirements.txt) dependencies installed, including `torch>=1.6`. To install run:
 ```bash
 $ git clone https://github.com/YuTingChow/ALPR.git
 $ cd ALPR
 $ pip install -r ./requirements.txt
+```
+Optional: Docker build
+```bash
+docker build -t alpr:v1 - < Dockerfile
+docker run --gpus all -it alpr:v1
 ```
 
 # Tests
